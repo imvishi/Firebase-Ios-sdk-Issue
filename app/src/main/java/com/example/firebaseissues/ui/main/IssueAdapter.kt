@@ -10,12 +10,13 @@ import com.example.firebaseissues.R
 import com.example.firebaseissues.ui.main.IssueAdapter.IssueViewHolder
 import kotlinx.android.synthetic.main.issue_view.view.*
 
+private const val BODY_TEXT_LENGTH = 140
 /**
  * Adapter used to render the list of Firebase issues
  */
 class IssueAdapter(val context: Context): RecyclerView.Adapter<IssueViewHolder>() {
 
-    private lateinit var dataModel: List<IssueDataModel>
+    private var dataModel: List<IssueDataModel> = emptyList()
 
     /**
      * method to set the list of all the issues that will be render on screen
@@ -44,7 +45,8 @@ class IssueAdapter(val context: Context): RecyclerView.Adapter<IssueViewHolder>(
 
         fun bind(model: IssueDataModel) {
             title.text = model.title
-            description.text = model.descriptor
+            val endpoint = kotlin.math.min(model.descriptor.length, BODY_TEXT_LENGTH)
+            description.text = model.descriptor.subSequence(0, endpoint)
         }
     }
 }
