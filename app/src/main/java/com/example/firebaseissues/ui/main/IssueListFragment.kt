@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.firebaseissues.R
 import kotlinx.android.synthetic.main.issue_fragment.*
 
-class IssueListFragment : Fragment() {
+class IssueListFragment : Fragment(), OnItemClickListener {
 
     companion object {
         fun newInstance() = IssueListFragment()
@@ -22,13 +22,16 @@ class IssueListFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        issueAdapter = IssueAdapter(requireContext())
-        viewModel = ViewModelProvider(this).get(IssueViewModel::class.java).also {
+        issueAdapter = IssueAdapter(requireContext(), this)
+        viewModel = ViewModelProvider(requireActivity()).get(IssueViewModel::class.java).also {
             it.liveData.observe(this, Observer {
                 issueAdapter.setIssueDataModel(it)
                 progress.visibility = View.GONE
                 issuesRecycleview.visibility = View.VISIBLE
             })
+        }
+        if (savedInstanceState == null) {
+            viewModel.getFirebaseIssues()
         }
     }
 
@@ -44,5 +47,19 @@ class IssueListFragment : Fragment() {
             adapter = issueAdapter
             layoutManager = LinearLayoutManager(requireContext())
         }
+
+        if (viewModel.liveData.value != null) {
+            progress.visibility = View.GONE
+            issuesRecycleview.visibility = View.VISIBLE
+        }
+    }
+
+    override fun onItemClicked(position: Int) {
+        val commentUrl = issueAdapter.getItemAtPosition(position).commentsUrl
+        viewModel.commentLiveData.value = null
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.container, CommentsFragment.newInstance(commentUrl))
+            .addToBackStack("Issue")
+            .commit()
     }
 }

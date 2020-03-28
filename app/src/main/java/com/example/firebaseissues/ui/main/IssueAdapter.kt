@@ -14,7 +14,9 @@ private const val BODY_TEXT_LENGTH = 140
 /**
  * Adapter used to render the list of Firebase issues
  */
-class IssueAdapter(val context: Context): RecyclerView.Adapter<IssueViewHolder>() {
+class IssueAdapter(
+    val context: Context,
+    val itemClickListener: OnItemClickListener): RecyclerView.Adapter<IssueViewHolder>() {
 
     private var dataModel: List<IssueDataModel> = emptyList()
 
@@ -27,6 +29,10 @@ class IssueAdapter(val context: Context): RecyclerView.Adapter<IssueViewHolder>(
         notifyDataSetChanged()
     }
 
+    /**
+     * method to get the issue at given position
+     */
+    fun getItemAtPosition(position: Int) = dataModel[position]
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): IssueViewHolder {
         val view = LayoutInflater.from(context).inflate(R.layout.issue_view, parent, false)
@@ -36,17 +42,19 @@ class IssueAdapter(val context: Context): RecyclerView.Adapter<IssueViewHolder>(
     override fun getItemCount() = dataModel.size
 
     override fun onBindViewHolder(holder: IssueViewHolder, position: Int) {
-        holder.bind(dataModel[position])
+        holder.bind(position, itemClickListener)
     }
 
-    class IssueViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    inner class IssueViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val title = view.titleText
         val description = view.descriptionText
 
-        fun bind(model: IssueDataModel) {
+        fun bind(position: Int, itemClickListener: OnItemClickListener) {
+            val model = dataModel[position]
             title.text = model.title
             val endpoint = kotlin.math.min(model.descriptor.length, BODY_TEXT_LENGTH)
             description.text = model.descriptor.subSequence(0, endpoint)
+            view.setOnClickListener { itemClickListener.onItemClicked(position) }
         }
     }
 }

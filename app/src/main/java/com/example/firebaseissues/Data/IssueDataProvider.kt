@@ -33,10 +33,17 @@ class IssueDataProvider(
          * method will be called on issues fetched
          */
         fun onIssuesFetched(model: List<IssueDataModel>)
+
+        /**
+         * method will be called on issue's comments fetched
+         */
+        fun onCommentsFetched(comments: List<CommentDataModel>)
     }
 
-
-    fun getIssue() {
+    /**
+     *  method used to provide the issues
+     */
+    fun getIssues() {
         coroutineScope.launch {
             val response = async {
                 fetchIssues()
@@ -52,10 +59,40 @@ class IssueDataProvider(
         }
     }
 
+    /**
+     * method used to provide the issue's comment
+     */
+    fun getComments(commentUrl: String) {
+        coroutineScope.launch {
+            val response = async {
+                fetchComments(commentUrl)
+            }.await()
+
+            val comments = async {
+                Gson().fromJson(response.toString(), Array<CommentDataModel>::class.java).toList()
+            }.await()
+
+            withContext(Dispatchers.Main) {
+                listener.onCommentsFetched(comments)
+            }
+        }
+    }
+
     private suspend fun fetchIssues() = suspendCoroutine<JSONArray> { cont ->
         val jsonArrayRequest = JsonArrayRequest(
             Request.Method.GET,
             Constants.issuesUrl,
+            null,
+            Response.Listener { response -> cont.resume(response) },
+            Response.ErrorListener { cont.resume(JSONArray()) }
+        )
+        requestQueue.add(jsonArrayRequest)
+    }
+
+    private suspend fun fetchComments(url: String) = suspendCoroutine<JSONArray> { cont ->
+        val jsonArrayRequest = JsonArrayRequest(
+            Request.Method.GET,
+            url,
             null,
             Response.Listener { response -> cont.resume(response) },
             Response.ErrorListener { cont.resume(JSONArray()) }
