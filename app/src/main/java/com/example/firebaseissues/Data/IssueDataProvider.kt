@@ -53,7 +53,15 @@ class IssueDataProvider(context: Context, val listener: Callback) : Callback {
      * method used to provide the issue's comment
      */
     fun getComments(commentUrl: String) {
-        dataFetcher.fetchComments(commentUrl)
+        val lastFetchedTime = sharedPref.getLong(commentUrl, 0)
+        if (lastFetchedTime + ONE_DAY_IN_MILLIS < System.currentTimeMillis()) {
+            // Fetched comments are invalid now. Fetch again
+            dataFetcher.fetchComments(commentUrl)
+            val editor = sharedPref.edit()
+            editor.putLong(commentUrl, System.currentTimeMillis()).apply()
+        } else {
+            database.selectCommentFromTable(commentUrl)
+        }
     }
 
     override fun onCommentsFetched(comments: List<CommentDataModel>, commentUrl: String) {

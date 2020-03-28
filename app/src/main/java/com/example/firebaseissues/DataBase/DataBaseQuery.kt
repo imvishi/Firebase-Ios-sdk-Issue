@@ -56,4 +56,21 @@ class DataBaseQuery(context: Context, val listener: Callback) {
             }
         }
     }
+
+    /**
+     * method used to selct issue's comment from table
+     */
+    fun selectCommentFromTable(commentUrl: String) {
+        coroutineScope.launch {
+            val comments = async {
+                dataBase.commentDao().getComments(commentUrl)
+            }.await()
+            withContext(Dispatchers.Main) {
+                listener.onCommentsFetched(
+                    comments.map { CommentDataModel(it.comment) },
+                    commentUrl
+                )
+            }
+        }
+    }
 }
