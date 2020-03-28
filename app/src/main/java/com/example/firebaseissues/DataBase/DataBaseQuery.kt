@@ -3,14 +3,13 @@ package com.example.firebaseissues.DataBase
 import android.content.Context
 import com.example.firebaseissues.Data.CommentDataModel
 import com.example.firebaseissues.Data.IssueDataModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.example.firebaseissues.ui.main.Callback
+import kotlinx.coroutines.*
 
 /**
  * Abstract layer between database and the code.
  */
-class DataBaseQuery(private val context: Context) {
+class DataBaseQuery(context: Context, val listener: Callback) {
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     private val dataBase = IssueDataBase(context)
 
@@ -39,6 +38,22 @@ class DataBaseQuery(private val context: Context) {
             comments
                 .map { CommentEntity(comment = it.body, comment_Url = commentUrl) }
                 .forEach { dataBase.commentDao().insertComment(it) }
+        }
+    }
+
+    /**
+     * method used to selct all issues from table
+     */
+    fun selectAllFromIssueTable() {
+        coroutineScope.launch {
+            val issues = async {
+                dataBase.issuesDao().getIssues()
+            }.await()
+            withContext(Dispatchers.Main) {
+                listener.onIssuesFetched(
+                    issues.map { IssueDataModel(it.title, it.descriptor, it.commentUrl) }
+                )
+            }
         }
     }
 }

@@ -1,35 +1,28 @@
 package com.example.firebaseissues.Data
 
 import android.content.Context
-import com.android.volley.Request
-import com.android.volley.RequestQueue
-import com.android.volley.Response
-import com.android.volley.toolbox.JsonArrayRequest
-import com.android.volley.toolbox.Volley
-import com.example.firebaseissues.Constants
+import android.content.SharedPreferences
+import com.example.firebaseissues.Constants.sharedPrefFile
 import com.example.firebaseissues.DataBase.DataBaseQuery
-import com.google.gson.Gson
-import kotlinx.coroutines.*
-import org.json.JSONArray
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
+import com.example.firebaseissues.ui.main.Callback
+
+private const val ISSUE_FETCHED_TIME = "issue_fetched_time"
+private const val ONE_DAY_IN_MILLIS = 86400000L
 
 /**
  * Data Provider class responsible to provide firebase Issue
  */
-class IssueDataProvider(
-    context: Context,
-    val listener: Callback) {
+class IssueDataProvider(context: Context, val listener: Callback) : Callback {
 
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
-    private val requestQueue: RequestQueue = Volley.newRequestQueue(context)
-    private val database = DataBaseQuery(context)
+    private val database = DataBaseQuery(context, this)
+    private val dataFetcher = IssueDataFetcher(context, this)
+    val sharedPref: SharedPreferences =
+        context.getSharedPreferences(sharedPrefFile, Context.MODE_PRIVATE)
 
     /**
      * Callback used to get the issues available
      */
     interface Callback {
-
         /**
          * method will be called on issues fetched
          */
@@ -45,20 +38,14 @@ class IssueDataProvider(
      *  method used to provide the issues
      */
     fun getIssues() {
-        coroutineScope.launch {
-            val response = async {
-                fetchIssues()
-            }.await()
-
-            val issueList = async {
-                Gson().fromJson(response.toString(), Array<IssueDataModel>::class.java).toList()
-            }.await()
-
-            database.insertIntoIssueTable(issueList)
-
-            withContext(Dispatchers.Main) {
-                listener.onIssuesFetched(issueList)
-            }
+        val lastFetchedTime = sharedPref.getLong(ISSUE_FETCHED_TIME, 0)
+        if (lastFetchedTime + ONE_DAY_IN_MILLIS < System.currentTimeMillis()) {
+            // Fetched Issues are invalid now. Fetch again
+            dataFetcher.fetchIssue()
+            val editor = sharedPref.edit()
+            editor.putLong(ISSUE_FETCHED_TIME, System.currentTimeMillis()).apply()
+        } else {
+            database.selectAllFromIssueTable()
         }
     }
 
@@ -66,41 +53,16 @@ class IssueDataProvider(
      * method used to provide the issue's comment
      */
     fun getComments(commentUrl: String) {
-        coroutineScope.launch {
-            val response = async {
-                fetchComments(commentUrl)
-            }.await()
-
-            val comments = async {
-                Gson().fromJson(response.toString(), Array<CommentDataModel>::class.java).toList()
-            }.await()
-
-            database.insertIntoCommentTable(comments, commentUrl)
-            withContext(Dispatchers.Main) {
-                listener.onCommentsFetched(comments)
-            }
-        }
+        dataFetcher.fetchComments(commentUrl)
     }
 
-    private suspend fun fetchIssues() = suspendCoroutine<JSONArray> { cont ->
-        val jsonArrayRequest = JsonArrayRequest(
-            Request.Method.GET,
-            Constants.issuesUrl,
-            null,
-            Response.Listener { response -> cont.resume(response) },
-            Response.ErrorListener { cont.resume(JSONArray()) }
-        )
-        requestQueue.add(jsonArrayRequest)
+    override fun onCommentsFetched(comments: List<CommentDataModel>, commentUrl: String) {
+        listener.onCommentsFetched(comments)
+        database.insertIntoCommentTable(comments, commentUrl)
     }
 
-    private suspend fun fetchComments(url: String) = suspendCoroutine<JSONArray> { cont ->
-        val jsonArrayRequest = JsonArrayRequest(
-            Request.Method.GET,
-            url,
-            null,
-            Response.Listener { response -> cont.resume(response) },
-            Response.ErrorListener { cont.resume(JSONArray()) }
-        )
-        requestQueue.add(jsonArrayRequest)
+    override fun onIssuesFetched(model: List<IssueDataModel>) {
+        listener.onIssuesFetched(model)
+        database.insertIntoIssueTable(model)
     }
 }
