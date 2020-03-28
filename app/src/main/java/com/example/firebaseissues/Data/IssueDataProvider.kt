@@ -1,13 +1,13 @@
 package com.example.firebaseissues.Data
 
 import android.content.Context
-import android.util.Log
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.Volley
 import com.example.firebaseissues.Constants
+import com.example.firebaseissues.DataBase.DataBaseQuery
 import com.google.gson.Gson
 import kotlinx.coroutines.*
 import org.json.JSONArray
@@ -23,6 +23,7 @@ class IssueDataProvider(
 
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     private val requestQueue: RequestQueue = Volley.newRequestQueue(context)
+    private val database = DataBaseQuery(context)
 
     /**
      * Callback used to get the issues available
@@ -53,6 +54,8 @@ class IssueDataProvider(
                 Gson().fromJson(response.toString(), Array<IssueDataModel>::class.java).toList()
             }.await()
 
+            database.insertIntoIssueTable(issueList)
+
             withContext(Dispatchers.Main) {
                 listener.onIssuesFetched(issueList)
             }
@@ -72,6 +75,7 @@ class IssueDataProvider(
                 Gson().fromJson(response.toString(), Array<CommentDataModel>::class.java).toList()
             }.await()
 
+            database.insertIntoCommentTable(comments, commentUrl)
             withContext(Dispatchers.Main) {
                 listener.onCommentsFetched(comments)
             }
