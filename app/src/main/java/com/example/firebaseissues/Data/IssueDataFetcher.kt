@@ -35,7 +35,7 @@ class IssueDataFetcher(context: Context, val listener: Callback) {
             }.await()
 
             withContext(Dispatchers.Main) {
-                listener.onIssuesFetched(issueList)
+                listener.onIssuesFetched(issueList, true)
             }
         }
     }
@@ -54,7 +54,7 @@ class IssueDataFetcher(context: Context, val listener: Callback) {
             }.await()
 
             withContext(Dispatchers.Main) {
-                listener.onCommentsFetched(comments, commentUrl)
+                listener.onCommentsFetched(comments, commentUrl, true)
             }
         }
     }

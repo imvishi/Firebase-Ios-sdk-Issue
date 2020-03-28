@@ -51,7 +51,8 @@ class DataBaseQuery(context: Context, val listener: Callback) {
             }.await()
             withContext(Dispatchers.Main) {
                 listener.onIssuesFetched(
-                    issues.map { IssueDataModel(it.title, it.descriptor, it.commentUrl) }
+                    issues.map { IssueDataModel(it.title, it.descriptor, it.commentUrl) },
+                    false
                 )
             }
         }
@@ -68,7 +69,8 @@ class DataBaseQuery(context: Context, val listener: Callback) {
             withContext(Dispatchers.Main) {
                 listener.onCommentsFetched(
                     comments.map { CommentDataModel(it.comment) },
-                    commentUrl
+                    commentUrl,
+                    false
                 )
             }
         }

@@ -64,13 +64,29 @@ class IssueDataProvider(context: Context, val listener: Callback) : Callback {
         }
     }
 
-    override fun onCommentsFetched(comments: List<CommentDataModel>, commentUrl: String) {
+    override fun onCommentsFetched(
+        comments: List<CommentDataModel>,
+        commentUrl: String,
+        isCachingNeeded: Boolean
+    ) {
         listener.onCommentsFetched(comments)
-        database.insertIntoCommentTable(comments, commentUrl)
+        if (comments.isEmpty()) {
+            val editor = sharedPref.edit()
+            editor.putLong(commentUrl, 0).apply()
+        }
+        if (isCachingNeeded) {
+            database.insertIntoCommentTable(comments, commentUrl)
+        }
     }
 
-    override fun onIssuesFetched(model: List<IssueDataModel>) {
+    override fun onIssuesFetched(model: List<IssueDataModel>, isCachingNeeded: Boolean) {
         listener.onIssuesFetched(model)
-        database.insertIntoIssueTable(model)
+        if (model.isEmpty()) {
+            val editor = sharedPref.edit()
+            editor.putLong(ISSUE_FETCHED_TIME, 0).apply()
+        }
+        if (isCachingNeeded) {
+            database.insertIntoIssueTable(model)
+        }
     }
 }

@@ -11,10 +11,14 @@ interface Callback {
     /**
      * method will be called on issues fetched
      */
-    fun onIssuesFetched(model: List<IssueDataModel>)
+    fun onIssuesFetched(model: List<IssueDataModel>, isCachingNeeded: Boolean)
 
     /**
      * method will be called on issue's comments fetched
      */
-    fun onCommentsFetched(comments: List<CommentDataModel>, commentUrl: String)
+    fun onCommentsFetched(
+        comments: List<CommentDataModel>,
+        commentUrl: String,
+        isCachingNeeded: Boolean
+    )
 }
